@@ -8,10 +8,10 @@ const paramsSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = paramsSchema.parse(context.params);
+    const { id } = paramsSchema.parse(params);
 
     const { data, error } = await supabase
       .from('articles')
