@@ -6,12 +6,18 @@ const paramsSchema = z.object({
   id: z.string().uuid()
 });
 
+type RouteContext = {
+  params: {
+    id: string;
+  };
+};
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
   try {
-    const { id } = paramsSchema.parse(params);
+    const { id } = paramsSchema.parse(context.params);
 
     const { data, error } = await supabase
       .from('articles')
