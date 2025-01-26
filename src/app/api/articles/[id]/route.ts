@@ -6,9 +6,13 @@ const paramsSchema = z.object({
   id: z.string().uuid()
 });
 
+interface RouteParams {
+  id: string;
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: RouteParams }
 ) {
   try {
     const { id } = paramsSchema.parse(params);
