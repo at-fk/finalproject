@@ -171,14 +171,18 @@ export class SemanticSearchService implements SearchService {
   }
 
   private async getEmbedding(text: string): Promise<number[]> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/embedding`, {
+    const response = await fetch(process.env.EMBEDDING_API_URL as string, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.EMBEDDING_API_KEY}`,
       },
       body: JSON.stringify({
-        text,
+        input: text,
+        model: "jina-embeddings-v3",
+        dimensions: 256,
+        task: "retrieval.query",
+        late_chunking: false
       }),
     });
 
@@ -189,8 +193,13 @@ export class SemanticSearchService implements SearchService {
       );
     }
 
-    const { embedding } = await response.json();
-    return embedding;
+    const data = await response.json();
+    
+    if (!data.data?.[0]?.embedding) {
+      throw new Error('Invalid response format from Jina API');
+    }
+
+    return data.data[0].embedding;
   }
 }
 
