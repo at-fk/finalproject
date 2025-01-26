@@ -68,10 +68,10 @@ export class SemanticSearchService implements SearchService {
 
       const { data, error } = await supabaseServer.rpc('match_articles', {
         query_embedding: embedding,
-        match_threshold: params.similarityThreshold || 0.6,
+        match_threshold: params.similarityThreshold || 0.4,
         match_count: params.pageSize || 10,
         regulation_filters: [params.regulation_id],
-        search_level: params.searchLevel || 'article',
+        search_level: 'paragraph',
         start_article: params.startArticle || null,
         end_article: params.endArticle || null
       });
@@ -138,8 +138,8 @@ export class SemanticSearchService implements SearchService {
           debug_info: {
             ...result.debug_info,
             search_type: 'semantic' as const,
-            search_level: params.searchLevel || 'article',
-            threshold: params.similarityThreshold || 0.6
+            search_level: 'paragraph',
+            threshold: params.similarityThreshold || 0.4
           }
         };
       }).filter((result): result is SearchResult => result !== null);

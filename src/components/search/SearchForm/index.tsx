@@ -93,10 +93,8 @@ export function SearchForm({ params, onParamsChange, onSearch, children }: Searc
               Search Settings
             </Label>
             <SemanticSearchSettings
-              searchLevel={params.searchLevel || 'article'}
-              similarityThreshold={params.similarityThreshold || 0.6}
+              similarityThreshold={params.similarityThreshold || 0.4}
               useAllMatches={params.useAllMatches || false}
-              onSearchLevelChange={(value) => handleParamsChange({ searchLevel: value })}
               onSimilarityThresholdChange={(value) => handleParamsChange({ similarityThreshold: value })}
               onUseAllMatchesChange={(value) => handleParamsChange({ useAllMatches: value })}
             />
