@@ -18,6 +18,7 @@ interface AISearchSectionProps {
   onSearch: (params: {
     regulation_id: string;
     query: string;
+    searchLevel: 'article' | 'paragraph';
     similarityThreshold: number;
   }) => void;
 }
@@ -80,6 +81,7 @@ export function AISearchSection({ onSearch }: AISearchSectionProps) {
       onSearch({
         regulation_id: regulationId,
         query,
+        searchLevel: 'paragraph',
         similarityThreshold,
       });
 
