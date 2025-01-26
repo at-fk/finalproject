@@ -14,7 +14,6 @@ export default function HomePage() {
   const handleAISearch = async (params: {
     regulation_id: string;
     query: string;
-    searchLevel: 'article' | 'paragraph';
     similarityThreshold: number;
   }) => {
     try {
@@ -31,7 +30,7 @@ export default function HomePage() {
           type: 'semantic',
           regulation_id: params.regulation_id,
           semanticQuery: params.query,
-          searchLevel: params.searchLevel,
+          searchLevel: 'paragraph',
           similarityThreshold: params.similarityThreshold,
           useAllMatches: true,
         }),
