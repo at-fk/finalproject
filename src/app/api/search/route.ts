@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UnifiedSearchService } from '@/services/search/unified-search';
 import { SearchError } from '@/lib/error-handling';
-import { SearchParams } from '@/types';
+import { SearchParams } from '@/types/domain/search/params';
 import { KeywordSearchService } from '@/services/search/keyword-search';
 
 export async function POST(request: NextRequest) {

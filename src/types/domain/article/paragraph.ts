@@ -13,4 +13,16 @@ export interface Paragraph {
 export interface Subparagraph {
   letter: string;
   content: string;
+}
+
+export interface SelectedParagraph {
+  number: string;
+  content: string;
+}
+
+export interface SelectedContent {
+  article_number: string;
+  regulation_name: string;
+  title: string;
+  paragraphs: SelectedParagraph[];
 } 

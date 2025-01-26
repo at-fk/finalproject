@@ -6,9 +6,15 @@ const paramsSchema = z.object({
   id: z.string().uuid()
 });
 
+type Props = {
+  params: {
+    id: string;
+  };
+};
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: Props
 ) {
   try {
     const { id } = paramsSchema.parse(params);

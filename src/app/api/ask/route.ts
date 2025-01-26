@@ -2,18 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { debug } from '@/lib/error-handling';
 import { createOpenAIChatCompletion } from '@/lib/ai/createOpenAIChatCompletion';
 import { ResponseLanguage } from '@/lib/ai/createOpenAIChatCompletion';
-
-interface SelectedParagraph {
-  number: string;
-  content: string;
-}
-
-interface SelectedContent {
-  article_number: string;
-  regulation_name: string;
-  title: string;
-  paragraphs: SelectedParagraph[];
-}
+import { SelectedParagraph, SelectedContent } from '@/types/domain/article/paragraph';
 
 /**
  * 選択済みの検索結果を元にコンテキストを作るためのヘルパー関数
