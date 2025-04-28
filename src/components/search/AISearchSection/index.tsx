@@ -21,20 +21,24 @@ interface AISearchSectionProps {
     searchLevel: 'article' | 'paragraph';
     similarityThreshold: number;
   }) => void;
+  onRegulationChange?: (regulationId: string) => void;
 }
 
-export function AISearchSection({ onSearch }: AISearchSectionProps) {
+export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectionProps) {
   const [regulationId, setRegulationId] = useState<string>('');
   const [query, setQuery] = useState('');
-  const [similarityThreshold, setSimilarityThreshold] = useState(0.3);
+  // Similarity Threshold is fixed to 0.3 (30%)
+  const similarityThreshold = 0.3;
   const [answer, setAnswer] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [maxContexts, setMaxContexts] = useState(10);
+  // Number of Contexts is fixed to 15
+  const maxContexts = 15;
   const [usedContext, setUsedContext] = useState<string | null>(null);
   const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>('en');
+  // Response language is fixed to English
+  const responseLanguage: ResponseLanguage = 'en';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +194,10 @@ export function AISearchSection({ onSearch }: AISearchSectionProps) {
           <Label className="text-lg font-semibold">Regulation Selection</Label>
           <RegulationSelect
             value={regulationId}
-            onChange={setRegulationId}
+            onChange={(id) => {
+              setRegulationId(id);
+              if (onRegulationChange) onRegulationChange(id);
+            }}
           />
         </div>
 
@@ -205,55 +212,11 @@ export function AISearchSection({ onSearch }: AISearchSectionProps) {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-lg font-semibold">Search Settings</Label>
-          <div className="space-y-4">
-            <div>
-              <Label>Similarity Threshold: {similarityThreshold * 100}%</Label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={similarityThreshold}
-                onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value))}
-                className="w-full mt-2"
-              />
-            </div>
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label>Number of Contexts to Reference (Max 30)</Label>
-          <Slider
-            value={[maxContexts]}
-            onValueChange={(values: number[]) => setMaxContexts(values[0])}
-            min={1}
-            max={30}
-            step={1}
-          />
-          <div className="text-sm text-gray-500">
-            Current setting: {maxContexts} contexts
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label className="text-lg font-semibold">Response Language</Label>
-          <RadioGroup
-            value={responseLanguage}
-            onValueChange={(value) => setResponseLanguage(value as ResponseLanguage)}
-            className="flex space-x-4 mt-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="ja" id="ja" />
-              <Label htmlFor="ja">日本語</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="en" id="en" />
-              <Label htmlFor="en">English</Label>
-            </div>
-          </RadioGroup>
-        </div>
+
+
+
 
         <Button type="submit" disabled={loading}>
           {loading ? 'Generating answer...' : 'Ask a question'}

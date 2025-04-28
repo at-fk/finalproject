@@ -1,12 +1,12 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import SearchContainer from '../components/search/SearchContainer';
 import { AISearchSection } from '../components/search/AISearchSection';
+import { SidebarRegulationStructure } from '../components/SidebarRegulationStructure';
 import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
-  const [showAISearch, setShowAISearch] = useState(false);
+  const [selectedRegulationId, setSelectedRegulationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [answer, setAnswer] = useState<string>('');
   const [usedContext, setUsedContext] = useState<string | null>(null);
@@ -84,27 +84,22 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="flex justify-end mb-4">
-          <Button
-            onClick={() => setShowAISearch(!showAISearch)}
-            variant="outline"
-          >
-            {showAISearch ? 'Go back to search' : 'AI Answer'}
-          </Button>
-        </div>
-
-        <Suspense fallback={<div>Loading...</div>}>
-          {showAISearch ? (
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">AI Answer</h2>
-                <p className="text-gray-600">
-                  EU regulation content can be answered using AI.
-                </p>
-              </div>
-              <AISearchSection onSearch={handleAISearch} />
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">AI Answer</h2>
+            <p className="text-gray-600">
+              EU regulation content can be answered using AI.
+            </p>
+          </div>
+          <div className="flex gap-6">
+            <SidebarRegulationStructure regulationId={selectedRegulationId} />
+            <div className="flex-1">
+              <AISearchSection
+                onSearch={handleAISearch}
+                onRegulationChange={setSelectedRegulationId}
+              />
               {answer && (
-                <div className="space-y-4">
+                <div className="space-y-4 mt-8">
                   <div className="prose max-w-none bg-white p-6 rounded-lg shadow">
                     {answer}
                   </div>
@@ -117,10 +112,8 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-          ) : (
-            <SearchContainer />
-          )}
-        </Suspense>
+          </div>
+        </div>
       </div>
     </main>
   );

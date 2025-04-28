@@ -46,6 +46,7 @@ const compareArticles = (a: ArticleData, b: ArticleData): number => {
 
 export function RegulationStructure({ regulationId, onStructureClick, onArticleClick }: RegulationStructureProps) {
   const [chapters, setChapters] = useState<ChapterData[]>([]);
+  const [standaloneArticles, setStandaloneArticles] = useState<ArticleData[]>([]); // ← 追加
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ export function RegulationStructure({ regulationId, onStructureClick, onArticleC
     async function fetchStructure() {
       if (!regulationId) {
         setChapters([]);
+        setStandaloneArticles([]);
         return;
       }
 
@@ -120,6 +122,23 @@ export function RegulationStructure({ regulationId, onStructureClick, onArticleC
         );
 
         setChapters(chaptersWithContent);
+
+        // チャプターがない場合、単独のarticlesを取得
+        if (!chaptersData || chaptersData.length === 0) {
+          const { data: articlesData, error: articlesError } = await supabase
+            .from('articles')
+            .select('id, article_number, title')
+            .eq('regulation_id', regulationId)
+            .is('chapter_id', null)
+            .is('section_id', null)
+            .order('order_index');
+
+          if (articlesError) throw handleSupabaseError(articlesError, 'RegulationStructure');
+
+          setStandaloneArticles((articlesData || []).sort(compareArticles));
+        } else {
+          setStandaloneArticles([]);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : '構造の取得に失敗しました');
       } finally {
@@ -176,7 +195,26 @@ export function RegulationStructure({ regulationId, onStructureClick, onArticleC
 
   return (
     <div className="p-4 space-y-2 text-sm">
-      <h3 className="font-semibold text-base mb-4">法令の構成</h3>
+      <h3 className="font-semibold text-base mb-4">Structure</h3>
+      {/* チャプターがない場合は単独のArticlesを表示 */}
+      {chapters.length === 0 && standaloneArticles.length > 0 && (
+        <div className="space-y-1">
+          <div className="font-medium text-gray-700 mb-2">Articles</div>
+          {standaloneArticles.map((article) => (
+            <div
+              key={article.id}
+              className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded text-gray-600"
+              onClick={() => onArticleClick(article.id)}
+            >
+              <div className="w-3.5 flex-shrink-0" />
+              <span>
+                Article {article.article_number}: {article.title}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* 通常のチャプター・セクション・アーティクル構造 */}
       {chapters.map((chapter) => (
         <div key={chapter.id} className="space-y-1">
           <div
