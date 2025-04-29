@@ -225,22 +225,22 @@ export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectio
       <div className="flex-1 overflow-y-auto space-y-4 p-2 mb-2 bg-gray-50 rounded">
         {history.length === 0 && (
           <div className="w-full bg-[#e7f0ff] rounded flex flex-col md:flex-row items-center justify-center py-8 px-4 md:px-12 min-h-[320px]">
-  <div className="flex-1 flex flex-col items-start justify-center mb-6 md:mb-0">
-    <h1 className="font-['Poppins',Helvetica] font-semibold text-black text-3xl md:text-5xl lg:text-6xl leading-tight">
-      Welcome to<br />EU Insights
-    </h1>
-    <p className="mt-6 font-['Poppins',Helvetica] font-normal text-[#858688] text-base md:text-xl">
-      Get Started by searching EU laws and Regulations
-    </p>
-  </div>
-  <div className="flex-1 flex items-center justify-center">
-    <img
-      className="w-full max-w-[360px] md:max-w-[420px] lg:max-w-[484px] h-auto object-contain rounded shadow"
-      alt="Screenshot"
-      src="https://c.animaapp.com/ma20lfwh77sO2R/img/screenshot-2025-04-26-at-8-39-43-am-1.png"
-    />
-  </div>
-</div>
+            <div className="flex-1 flex flex-col items-start justify-center mb-6 md:mb-0">
+              <h1 className="font-['Poppins',Helvetica] font-semibold text-black text-2xl md:text-4xl lg:text-5xl leading-tight">
+                Welcome to<br />EU Insights
+              </h1>
+              <p className="mt-6 font-['Poppins',Helvetica] font-normal text-[#858688] text-base md:text-xl">
+                Get Started by searching EU laws and Regulations
+              </p>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <img
+                className="w-full max-w-[600px] md:max-w-[720px] lg:max-w-[900px] h-auto object-contain rounded shadow"
+                alt="Screenshot"
+                src="https://c.animaapp.com/ma20lfwh77sO2R/img/screenshot-2025-04-26-at-8-39-43-am-1.png"
+              />
+            </div>
+          </div>
         )}
         {history.map((msg, idx) => (
           msg.role === 'user' ? (

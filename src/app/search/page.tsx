@@ -79,7 +79,7 @@ export default function SearchPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="space-y-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">EU Insight</h2>
