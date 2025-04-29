@@ -38,7 +38,7 @@ async function buildContextFromSemanticSearch(params: SearchParams) {
   // コンテキスト文字列を構築
   const contextString = selectedParagraphs
     .map((item, idx) => [
-      `【選択結果${idx + 1}】`,
+      `【Context ${idx + 1}】`,
       item.regulation_name,
       `Article ${item.article_number}${item.title ? `: ${item.title}` : ''}`,
       `Paragraph ${item.paragraph.number}:\n${item.paragraph.elements?.map(e => e.content).join('\n') || ''}`
@@ -53,14 +53,23 @@ async function buildContextFromSemanticSearch(params: SearchParams) {
  */
 export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
-  const { query, searchParams, language = 'ja' } = await request.json();
+  const { query, searchParams, language = 'ja', lastQA } = await request.json();
 
   try {
+    // Supabase検索用クエリ生成: 直前のやりとりを要約＋今回の質問を明示
+    let semanticQueryText = '';
+    if (lastQA && lastQA.question && lastQA.answer) {
+      // ごく簡単な要約形式
+      semanticQueryText = `Note: Previous conversation - Question: ${lastQA.question} Answer: ${lastQA.answer}\n\nCurrent Question: ${query}`;
+    } else {
+      semanticQueryText = query;
+    }
+
     // セマンティック検索を実行してコンテキストを構築
     const contextString = await buildContextFromSemanticSearch({
       type: 'semantic',
-      regulation_id: searchParams.regulation_id,
-      semanticQuery: query,
+      regulation_id: searchParams.regulation_id || undefined,
+      semanticQuery: semanticQueryText,
       searchLevel: 'paragraph',
       similarityThreshold: searchParams.similarityThreshold,
       maxContexts: searchParams.maxContexts,
@@ -78,9 +87,17 @@ export async function POST(request: NextRequest) {
             })}\n\n`)
           );
 
-          // createOpenAIChatCompletionを使用してAI応答を生成
+          // LLMへのmessages配列生成: 直前のやりとりがあれば積む
+          let messages = [];
+          if (lastQA && lastQA.question && lastQA.answer) {
+            messages.push({ role: 'user', content: lastQA.question });
+            messages.push({ role: 'assistant', content: lastQA.answer });
+          }
+          messages.push({ role: 'user', content: query });
+
+          // createOpenAIChatCompletionを使用してAI応答を生成（messages形式に拡張）
           const completion = createOpenAIChatCompletion(
-            query,
+            messages,
             contextString,
             language as ResponseLanguage
           );

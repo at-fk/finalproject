@@ -92,7 +92,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex gap-6">
-            <SidebarRegulationStructure regulationId={selectedRegulationId} />
+            <SidebarRegulationStructure />
             <div className="flex-1">
               <AISearchSection
                 onSearch={handleAISearch}

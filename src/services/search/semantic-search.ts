@@ -39,13 +39,6 @@ export class SemanticSearchService implements SearchService {
   }
 
   private validateParams(params: SearchParams): void {
-    if (!params.regulation_id) {
-      throw new SearchError(
-        'Regulation ID is required',
-        'VALIDATION_ERROR'
-      );
-    }
-
     if (!params.semanticQuery?.trim()) {
       throw new SearchError(
         'Search query is required',
@@ -70,7 +63,7 @@ export class SemanticSearchService implements SearchService {
         query_embedding: embedding,
         match_threshold: params.similarityThreshold || 0.4,
         match_count: params.pageSize || 10,
-        regulation_filters: [params.regulation_id],
+        regulation_filters: params.regulation_id ? [params.regulation_id] : [],
         search_level: 'paragraph',
         start_article: params.startArticle || null,
         end_article: params.endArticle || null

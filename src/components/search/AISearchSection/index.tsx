@@ -25,6 +25,10 @@ interface AISearchSectionProps {
 }
 
 export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectionProps) {
+  // チャット履歴（UI用）
+  const [history, setHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  // 直前のQ&A履歴を保持
+  const [lastQA, setLastQA] = useState<{ question: string; answer: string } | null>(null);
   const [regulationId, setRegulationId] = useState<string>('');
   const [query, setQuery] = useState('');
   // Similarity Threshold is fixed to 0.3 (30%)
@@ -42,10 +46,21 @@ export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectio
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regulationId || !query) return;
+    if (!query) return;
 
     setLoading(true);
     setError(null);
+    setAnswer('');
+    setUsedContext(null);
+
+    // ユーザーの質問を履歴に追加
+    setHistory(prev => [...prev, { role: 'user', content: query }]);
+
+    // ストリーミング開始時に空のassistantメッセージを履歴に追加
+    setHistory(prev => [...prev, { role: 'assistant', content: '' }]);
+
+    // 新しいAbortControllerを作成
+    abortControllerRef.current = new AbortController();
     setAnswer('');
     setUsedContext(null);
 
@@ -67,6 +82,7 @@ export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectio
             maxContexts,
           },
           language: responseLanguage,
+          lastQA, // 直前のQ&A履歴をAPIへ送信
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -83,13 +99,14 @@ export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectio
 
       // 検索結果を更新
       onSearch({
-        regulation_id: regulationId,
+        regulation_id: '', // Semantic Searchには空欄で渡す
         query,
         searchLevel: 'paragraph',
         similarityThreshold,
       });
 
       let buffer = '';  // 不完全なチャンクを保持するバッファ
+      let answerBuffer = '';
 
       // ストリーミングレスポンスを処理
       while (true) {
@@ -132,7 +149,19 @@ export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectio
               if (parsed.type === 'context' && parsed.usedContext) {
                 setUsedContext(parsed.usedContext);
               } else if (parsed.content) {
-                setAnswer(prev => prev + parsed.content);
+                // ストリーミングで受信した内容を履歴の末尾assistantメッセージに反映
+                answerBuffer += parsed.content;
+                setHistory(prev => {
+                  // assistantメッセージが履歴末尾にある前提
+                  if (prev.length === 0) return prev;
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === 'assistant') {
+                    updated[updated.length - 1] = { ...last, content: answerBuffer };
+                  }
+                  return updated;
+                });
+                setAnswer(answerBuffer);
               } else if (parsed.error) {
                 throw new Error(parsed.error);
               } else if (parsed.type === 'done') {
@@ -149,20 +178,23 @@ export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectio
             // 重大なエラーのみをユーザーに表示
             if (e instanceof Error) {
               if (e.message.includes('No relevant content found')) {
-                setError('関連する内容が見つかりませんでした。検索条件を変更してお試しください。');
+                setError('no relevant content found');
               } else if (e.message.includes('No content above similarity threshold')) {
-                setError('類似度閾値を超える内容が見つかりませんでした。閾値を下げてお試しください。');
+                setError('no content above similarity threshold');
               } else if (e.message.includes('AbortError')) {
                 // リクエストがキャンセルされた場合は何もしない
                 return;
               } else {
                 // その他の重大なエラーのみをユーザーに表示
-                setError(`エラーが発生しました: ${e.message}`);
+                setError(`error: ${e.message}`);
               }
             }
           }
         }
       }
+      // 回答取得後にlastQAを更新
+      setLastQA({ question: query, answer: answerBuffer });
+      // すでにストリーミングで履歴末尾に反映済みなので追加処理は不要
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         // リクエストがキャンセルされた場合は何もしない
@@ -185,81 +217,83 @@ export function AISearchSection({ onSearch, onRegulationChange }: AISearchSectio
       setLoading(false);
       abortControllerRef.current = null;
     }
-  };
+  }
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label className="text-lg font-semibold">Regulation Selection</Label>
-          <RegulationSelect
-            value={regulationId}
-            onChange={(id) => {
-              setRegulationId(id);
-              if (onRegulationChange) onRegulationChange(id);
-            }}
-          />
-        </div>
+    <div className="flex flex-col h-full max-h-[70vh]">
+      {/* チャット履歴 */}
+      <div className="flex-1 overflow-y-auto space-y-4 p-2 mb-2 bg-gray-50 rounded">
+        {history.length === 0 && (
+          <div className="text-gray-400 text-center mt-8">No conversation yet. Ask your first question!</div>
+        )}
+        {history.map((msg, idx) => (
+  msg.role === 'user' ? (
+    <div key={idx} className="flex justify-end">
+      <div className="rounded-lg px-4 py-2 max-w-[70%] shadow text-sm bg-blue-100 text-blue-900">
+        {msg.content}
+      </div>
+    </div>
+  ) : (
+    <div key={idx} className="flex justify-start">
+      <div className="prose prose-sm max-w-none my-2">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {msg.content}
+        </ReactMarkdown>
+      </div>
+    </div>
+  )
+))}
+      </div>
 
-        <div className="space-y-2">
-          <Label className="text-lg font-semibold">Question Content</Label>
-          <Textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Question must be provided"
-            disabled={loading}
-            className="min-h-[100px]"
-          />
-        </div>
+      {/* エラー表示 */}
+      {error && (
+        <Alert variant="destructive" className="mb-2">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-
-
-
-
-
-
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Generating answer...' : 'Ask a question'}
+      {/* 入力フォーム */}
+      <form onSubmit={handleSubmit} className="flex gap-2 items-end mt-auto">
+        <Textarea
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Type your question..."
+          disabled={loading}
+          className="min-h-[48px] flex-1"
+        />
+        <Button type="submit" disabled={loading || !query} className="h-[48px]">
+          {loading ? '...' : 'Send'}
         </Button>
         {loading && (
           <Button 
             type="button" 
             variant="outline" 
             onClick={() => abortControllerRef.current?.abort()}
-            className="ml-2"
+            className="h-[48px]"
           >
             Cancel
           </Button>
         )}
       </form>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {answer && (
-        <div className="space-y-4">
-          <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-lg">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
-          </div>
-          
-          <Dialog open={isContextDialogOpen} onOpenChange={setIsContextDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">View Referenced Context</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Referenced Context</DialogTitle>
-              </DialogHeader>
-              <div className="prose prose-sm max-w-none">
-                <pre className="whitespace-pre-wrap">{usedContext}</pre>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+      {/* 参照コンテキストの表示 */}
+      {usedContext && (
+        <Dialog open={isContextDialogOpen} onOpenChange={setIsContextDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="mt-2">View Referenced Context</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Referenced Context</DialogTitle>
+            </DialogHeader>
+            <div className="prose prose-sm max-w-none">
+              <pre className="whitespace-pre-wrap">{usedContext}</pre>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
 }
+
+        

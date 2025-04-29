@@ -85,34 +85,53 @@ export type ResponseLanguage = 'ja' | 'en';
  * @param language - 応答言語（'ja'または'en'）
  * @returns 生成された回答
  */
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
+/**
+ * GPT-4oで回答を生成する関数
+ * @param userQueryOrMessages - ユーザーの質問（string）または会話履歴（messages配列）
+ * @param context - 検索で得られたコンテキスト
+ * @param language - 応答言語（'ja'または'en'）
+ * @returns 生成された回答
+ */
 export async function* createOpenAIChatCompletion(
-  userQuery: string,
+  userQueryOrMessages: string | ChatMessage[],
   context: string,
   language: ResponseLanguage = 'ja'
 ): AsyncGenerator<string> {
   // デバッグ出力
   console.log("=== Debug Info ===");
-  console.log("Query:", userQuery);
+  console.log("Query or Messages:", userQueryOrMessages);
   console.log("Context:", context);
   console.log("Language:", language);
   console.log("================");
 
-  // 言語に基づいてプロンプトを選択
+  // 言語に基づいてプロンプトを選択＆『文脈も考えて答えろ』を明示
   const systemPrompt = language === 'ja'
-    ? `${japaneseSystemPrompt}\n\n参照コンテキスト：\n${context}\n\n質問内容：\n${userQuery}`
-    : `${englishSystemPrompt}\n\nReference Context:\n${context}\n\nQuestion:\n${userQuery}`;
+    ? `${japaneseSystemPrompt}\n\n【注意】直前までの会話の文脈も考慮して答えてください。\n\n参照コンテキスト：\n${context}`
+    : `${englishSystemPrompt}\n\n[Note] Please also consider the previous conversation context when answering.\n\nReference Context:\n${context}`;
 
-  // デバッグ出力：システムプロンプトの内容も確認
-  console.log("=== System Prompt ===");
-  console.log(systemPrompt);
-  console.log("===================");
+  // OpenAI messages配列生成
+  let messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+    { role: 'system', content: systemPrompt }
+  ];
+
+  if (typeof userQueryOrMessages === 'string') {
+    // 従来通りの単発質問
+    messages.push({ role: 'user', content: userQueryOrMessages });
+  } else if (Array.isArray(userQueryOrMessages)) {
+    // 会話履歴（messages配列）をそのまま追加
+    messages = [messages[0], ...userQueryOrMessages];
+  }
+
+  // デバッグ出力：messages
+  console.log("=== OpenAI Messages ===");
+  console.log(JSON.stringify(messages, null, 2));
+  console.log("======================");
 
   const stream = await openai.chat.completions.create({
     model: "gpt-4o",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userQuery },
-    ],
+    messages,
     temperature: 0,
     max_tokens: 5000,
     stream: true,
